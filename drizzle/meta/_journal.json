@@ -1,5 +1,20 @@
 {
   "version": "7",
   "dialect": "mysql",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1774605981841,
+      "tag": "0000_volatile_inertia",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1774606134029,
+      "tag": "0001_unique_azazel",
+      "breakpoints": true
+    }
+  ]
 }
