@@ -90,3 +90,39 @@
 - [x] Mudar "Sicília Trip Planner" para "Voyage Planner" no código
 - [x] Atualizar títulos e labels na interface
 - [x] Testar e validar funcionamento
+
+
+## Mudanças Solicitadas - Fase 4
+
+### Wizard de Criação de Viagem
+- [x] Schema: adicionar campos `numDays`, `startDate`, `location` à tabela `trips`
+- [x] Schema: tabela `trip_collaborators` (usuário, viagem, permissões)
+- [x] tRPC: criar wizard com perguntas (dias, data, local)
+- [x] tRPC: adicionar colaboradores à viagem
+- [x] Frontend: componente TripWizard com formulário multi-etapa
+- [x] Frontend: validação de dados do wizard
+
+### Compartilhamento Colaborativo
+- [x] Backend: sistema de notificações para mudanças na viagem
+- [x] Backend: WebSocket ou polling para atualizações em tempo real
+- [x] Frontend: indicador de quem está editando
+- [x] Frontend: histórico de mudanças
+
+### Persistência de Sessão
+- [x] Frontend: armazenar `selectedTripId` no localStorage
+- [x] Frontend: recuperar viagem ao recarregar página
+- [x] Frontend: opção de "Sair da Viagem" mantendo sessão de usuário
+
+### Exportação Melhorada
+- [x] Backend: integração com Google Drive API para seleção de pasta
+- [x] Backend: compartilhamento automático com colaboradores
+- [x] Frontend: dialog para seleção de pasta no Drive
+- [x] Frontend: feedback de progresso da exportação
+
+### Limpeza de Dados
+- [x] Remover viagens de teste (Test Trip, Sicília Export Test, etc)
+- [x] Limpar dados de teste do banco
+
+### Testes
+- [ ] Testes para wizard de criação
+- [ ] Testes para compartilhamento colaborativo

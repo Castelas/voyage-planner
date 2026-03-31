@@ -1,16 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Plus, Plane } from "lucide-react";
+import { Plus, Plane, LogOut } from "lucide-react";
+import { TripWizard } from "./TripWizard";
 import { toast } from "sonner";
 
 interface TripSelectorProps {
   onSelectTrip: (tripId: number) => void;
+  onLogout: () => void;
 }
 
-export function TripSelector({ onSelectTrip }: TripSelectorProps) {
+export function TripSelector({ onSelectTrip, onLogout }: TripSelectorProps) {
+  const [showWizard, setShowWizard] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [newTripName, setNewTripName] = useState("");
   const [newTripDescription, setNewTripDescription] = useState("");
@@ -22,21 +25,25 @@ export function TripSelector({ onSelectTrip }: TripSelectorProps) {
       setNewTripName("");
       setNewTripDescription("");
       setShowDialog(false);
-      if (trip?.id) onSelectTrip(trip.id);
+      if (trip?.id) {
+        localStorage.setItem("selectedTripId", trip.id.toString());
+        onSelectTrip(trip.id);
+      }
     },
     onError: () => toast.error("Erro ao criar viagem"),
   });
 
-  const handleCreateTrip = () => {
-    if (!newTripName.trim()) {
-      toast.error("Nome da viagem é obrigatório");
-      return;
-    }
-    createTripMutation.mutate({
-      name: newTripName,
-      description: newTripDescription || undefined,
-    });
+  const handleSelectTrip = (tripId: number) => {
+    localStorage.setItem("selectedTripId", tripId.toString());
+    onSelectTrip(tripId);
   };
+
+  const handleTripCreatedFromWizard = (tripId: number) => {
+    localStorage.setItem("selectedTripId", tripId.toString());
+    onSelectTrip(tripId);
+  };
+
+
 
   if (isLoading) {
     return (
@@ -62,10 +69,15 @@ export function TripSelector({ onSelectTrip }: TripSelectorProps) {
         {trips.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-gray-500 mb-4">Você ainda não tem nenhuma viagem</p>
-            <Button onClick={() => setShowDialog(true)} className="w-full">
-              <Plus className="w-4 h-4 mr-2" />
-              Criar Primeira Viagem
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => setShowWizard(true)} className="flex-1">
+                <Plus className="w-4 h-4 mr-2" />
+                Criar Primeira Viagem
+              </Button>
+              <Button onClick={onLogout} variant="outline" size="icon">
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         ) : (
           <>
@@ -73,7 +85,7 @@ export function TripSelector({ onSelectTrip }: TripSelectorProps) {
               {trips.map((trip) => (
                 <button
                   key={trip.id}
-                  onClick={() => onSelectTrip(trip.id)}
+                  onClick={() => handleSelectTrip(trip.id)}
                   className="w-full p-4 text-left border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all"
                 >
                   <h3 className="font-semibold text-gray-900">{trip.name}</h3>
@@ -87,49 +99,23 @@ export function TripSelector({ onSelectTrip }: TripSelectorProps) {
               ))}
             </div>
 
-            <Button onClick={() => setShowDialog(true)} variant="outline" className="w-full">
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Viagem
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => setShowWizard(true)} className="flex-1">
+                <Plus className="w-4 h-4 mr-2" />
+                Nova Viagem
+              </Button>
+              <Button onClick={onLogout} variant="outline" size="icon">
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
           </>
         )}
 
-        <Dialog open={showDialog} onOpenChange={setShowDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Criar Nova Viagem</DialogTitle>
-              <DialogDescription>Adicione os detalhes da sua nova viagem</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700">Nome da Viagem</label>
-                <Input
-                  placeholder="Ex: Paris 2025"
-                  value={newTripName}
-                  onChange={(e) => setNewTripName(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Descrição (opcional)</label>
-                <Input
-                  placeholder="Ex: 5 dias explorando a Europa"
-                  value={newTripDescription}
-                  onChange={(e) => setNewTripDescription(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-              <div className="flex gap-3 pt-4">
-                <Button variant="outline" onClick={() => setShowDialog(false)} className="flex-1">
-                  Cancelar
-                </Button>
-                <Button onClick={handleCreateTrip} disabled={createTripMutation.isPending} className="flex-1">
-                  {createTripMutation.isPending ? "Criando..." : "Criar"}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <TripWizard
+          open={showWizard}
+          onOpenChange={setShowWizard}
+          onTripCreated={handleTripCreatedFromWizard}
+        />
       </div>
     </div>
   );

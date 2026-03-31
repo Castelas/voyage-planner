@@ -96,6 +96,10 @@ export const trips = mysqlTable("trips", {
   description: text("description"),
   startDate: varchar("startDate", { length: 20 }), // ISO date
   endDate: varchar("endDate", { length: 20 }), // ISO date
+  numDays: int("numDays").default(5), // Número de dias da viagem
+  location: varchar("location", { length: 255 }), // Local da viagem (para o mapa)
+  locationLat: float("locationLat"), // Latitude do local
+  locationLng: float("locationLng"), // Longitude do local
   ownerId: int("ownerId")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -181,3 +185,21 @@ export const votesV2 = mysqlTable("votes_v2", {
 }));
 
 export type VoteV2 = typeof votesV2.$inferSelect;
+
+// Colaboradores de viagem
+export const tripCollaborators = mysqlTable("trip_collaborators", {
+  id: int("id").autoincrement().primaryKey(),
+  tripId: int("tripId")
+    .notNull()
+    .references(() => trips.id, { onDelete: "cascade" }),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  role: mysqlEnum("role", ["owner", "editor", "viewer"]).default("editor").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  uniqueCollaborator: unique("unique_collaborator").on(table.tripId, table.userId),
+}));
+
+export type TripCollaborator = typeof tripCollaborators.$inferSelect;
+export type InsertTripCollaborator = typeof tripCollaborators.$inferInsert;

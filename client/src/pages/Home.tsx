@@ -160,7 +160,7 @@ export default function HomePage() {
 
   // If logged in but no trip selected, show trip selector
   if (!selectedTripId) {
-    return <TripSelector onSelectTrip={setSelectedTripId} />;
+    return <TripSelector onSelectTrip={setSelectedTripId} onLogout={logout} />;
   }
 
   return (

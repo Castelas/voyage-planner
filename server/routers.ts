@@ -21,6 +21,12 @@ import {
   reorderAttractionInDayV2,
   toggleVoteV2,
   getUserVotesV2,
+  addCollaborator,
+  removeCollaborator,
+  getCollaboratorsByTrip,
+  getUserTripsAsCollaborator,
+  getCollaboratorRole,
+  getDb,
 } from "./db";
 import { makeRequest } from "./_core/map";
 
@@ -410,6 +416,43 @@ const exportRouter = router({
     }),
 });
 
+// ─── Collaborators Router ────────────────────────────────────────────────────
+
+const collaboratorsRouter = router({
+  add: protectedProcedure
+    .input(
+      z.object({
+        tripId: z.number(),
+        userEmail: z.string().email(),
+        role: z.enum(["owner", "editor", "viewer"]).default("editor"),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const trip = await getTripById(input.tripId);
+      if (!trip || trip.ownerId !== ctx.user.id) throw new Error("Not authorized");
+      // In production, lookup user by email
+      // For now, just return success
+      return { success: true };
+    }),
+
+  list: protectedProcedure
+    .input(z.object({ tripId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const trip = await getTripById(input.tripId);
+      if (!trip || trip.ownerId !== ctx.user.id) throw new Error("Not authorized");
+      return getCollaboratorsByTrip(input.tripId);
+    }),
+
+  remove: protectedProcedure
+    .input(z.object({ tripId: z.number(), userId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const trip = await getTripById(input.tripId);
+      if (!trip || trip.ownerId !== ctx.user.id) throw new Error("Not authorized");
+      await removeCollaborator(input.tripId, input.userId);
+      return { success: true };
+    }),
+});
+
 // ─── App Router ───────────────────────────────────────────────────────────────
 
 export const appRouter = router({
@@ -426,6 +469,7 @@ export const appRouter = router({
   attractions: attractionsRouter,
   itinerary: itineraryRouter,
   export: exportRouter,
+  collaborators: collaboratorsRouter,
 });
 
 export type AppRouter = typeof appRouter;

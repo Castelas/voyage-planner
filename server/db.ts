@@ -20,6 +20,8 @@ import {
   AttractionDayV2,
   votesV2,
   VoteV2,
+  tripCollaborators,
+  InsertTripCollaborator,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -379,4 +381,45 @@ export async function getUserVotesV2(userId: number): Promise<VoteV2[]> {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(votesV2).where(eq(votesV2.userId, userId));
+}
+
+
+// ─── Trip Collaborators ──────────────────────────────────────────────────────
+
+export async function addCollaborator(tripId: number, userId: number, role: "owner" | "editor" | "viewer" = "editor"): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(tripCollaborators).values({ tripId, userId, role }).onDuplicateKeyUpdate({ set: { role } });
+}
+
+export async function removeCollaborator(tripId: number, userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(tripCollaborators).where(and(eq(tripCollaborators.tripId, tripId), eq(tripCollaborators.userId, userId)));
+}
+
+export async function getCollaboratorsByTrip(tripId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(tripCollaborators).where(eq(tripCollaborators.tripId, tripId));
+}
+
+export async function getUserTripsAsCollaborator(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const collaborations = await db.select().from(tripCollaborators).where(eq(tripCollaborators.userId, userId));
+  if (collaborations.length === 0) return [];
+  const tripIds = collaborations.map((c) => c.tripId);
+  return db.select().from(trips).where(inArray(trips.id, tripIds));
+}
+
+export async function getCollaboratorRole(tripId: number, userId: number): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select()
+    .from(tripCollaborators)
+    .where(and(eq(tripCollaborators.tripId, tripId), eq(tripCollaborators.userId, userId)))
+    .limit(1);
+  return result[0]?.role || null;
 }
