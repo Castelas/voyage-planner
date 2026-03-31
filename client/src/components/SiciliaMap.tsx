@@ -3,7 +3,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { MapView } from "@/components/Map";
 import type { RouterOutputs } from "@/lib/trpc";
 
-type Attraction = RouterOutputs["attractions"]["list"][number];
+type Attraction = RouterOutputs["attractions"]["listByTrip"][number];
 
 interface SiciliaMapProps {
   attractions: Attraction[];
@@ -14,7 +14,7 @@ interface SiciliaMapProps {
   className?: string;
 }
 
-const STATUS_COLORS = {
+const STATUS_COLORS: Record<string, string> = {
   confirmed: "#10b981", // emerald
   idea: "#f59e0b",      // amber
 };
@@ -39,7 +39,8 @@ export function SiciliaMap({
   const SICILY_CENTER = { lat: 37.6, lng: 14.0 };
 
   const createMarkerContent = useCallback((attraction: Attraction, isSelected: boolean) => {
-    const color = isSelected ? SELECTED_COLOR : STATUS_COLORS[attraction.status];
+    const statusKey = (attraction.status as keyof typeof STATUS_COLORS) || "idea";
+    const color = isSelected ? SELECTED_COLOR : STATUS_COLORS[statusKey];
     const div = document.createElement("div");
     div.innerHTML = `
       <div style="

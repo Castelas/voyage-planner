@@ -15,6 +15,13 @@
       "when": 1774606134029,
       "tag": "0001_unique_azazel",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1774944811000,
+      "tag": "0002_amusing_mole_man",
+      "breakpoints": true
     }
   ]
 }

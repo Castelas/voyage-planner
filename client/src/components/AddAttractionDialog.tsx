@@ -14,6 +14,7 @@ interface AddAttractionDialogProps {
   open: boolean;
   onClose: () => void;
   onAdded: () => void;
+  tripId?: number;
 }
 
 type PlaceResult = {
@@ -27,7 +28,7 @@ type PlaceResult = {
   category?: string;
 };
 
-export function AddAttractionDialog({ open, onClose, onAdded }: AddAttractionDialogProps) {
+export function AddAttractionDialog({ open, onClose, onAdded, tripId = 1 }: AddAttractionDialogProps) {
   const [mode, setMode] = useState<"search" | "manual">("search");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -76,6 +77,7 @@ export function AddAttractionDialog({ open, onClose, onAdded }: AddAttractionDia
   const handleAddPlace = () => {
     if (!selectedPlace) return;
     createMutation.mutate({
+      tripId,
       name: selectedPlace.name,
       address: selectedPlace.address,
       lat: selectedPlace.lat,
@@ -93,6 +95,7 @@ export function AddAttractionDialog({ open, onClose, onAdded }: AddAttractionDia
       return;
     }
     createMutation.mutate({
+      tripId,
       name: manualName.trim(),
       description: manualDesc.trim() || undefined,
       address: manualAddress.trim() || undefined,

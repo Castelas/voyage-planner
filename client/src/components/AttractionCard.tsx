@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { GripVertical, Heart, MapPin, Star, Trash2, CheckCircle, Lightbulb } from "lucide-react";
 import type { RouterOutputs } from "@/lib/trpc";
 
-type Attraction = RouterOutputs["attractions"]["list"][number];
+type Attraction = RouterOutputs["attractions"]["listByTrip"][number];
 
 interface AttractionCardProps {
   attraction: Attraction;
@@ -143,9 +143,6 @@ export function AttractionCard({
                   )}
                 >
                   <Heart size={10} fill={attraction.userVoted ? "currentColor" : "none"} />
-                  {attraction.voteCount > 0 && (
-                    <span>{attraction.voteCount}</span>
-                  )}
                 </button>
               )}
               {onDelete && (

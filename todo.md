@@ -42,3 +42,42 @@
 
 ## Testes
 - [x] Testes vitest para rotas tRPC principais (11 testes passando)
+
+
+## Mudanças Solicitadas - Fase 2
+
+### Suporte a Múltiplas Viagens
+- [x] Schema: tabela `trips` (nome, descrição, data_início, data_fim, usuário_dono)
+- [x] Schema: atualizar `attractions` para referenciar `trips`
+- [x] Schema: atualizar `itinerary_days` para referenciar `trips`
+- [x] tRPC: CRUD de viagens
+- [x] Frontend: seletor/modal de viagens ao conectar
+- [x] Frontend: criar nova viagem
+
+### Horários dos Dias
+- [x] Schema: adicionar `start_time` e `end_time` em `itinerary_days`
+- [x] Schema: adicionar `time` em `attraction_days` (horário da atração no dia)
+- [x] tRPC: atualizar/obter horários
+- [x] Frontend: editor de horários no painel de itinerário
+- [x] Frontend: mostrar horários no card de atração
+
+### Alojamentos
+- [x] Schema: tabela `accommodations` (nome, endereço, lat/lng, check-in, check-out, notas)
+- [x] Schema: relação `accommodation_days` (qual alojamento em cada dia)
+- [x] tRPC: CRUD de alojamentos
+- [x] Frontend: aba de alojamentos
+- [x] Frontend: adicionar/editar alojamento via Places ou manual
+- [x] Frontend: marcador verde para alojamentos no mapa
+
+### Cores por Tipo de Marcador
+- [x] Frontend: marcador amarelo para atrações turísticas
+- [x] Frontend: marcador verde para alojamentos
+- [x] Frontend: atualizar legenda do mapa
+- [x] Frontend: filtrar por tipo de marcador
+
+### Exportação para Google Drive
+- [x] Integração OAuth com Google Drive
+- [x] tRPC: gerar documento com roteiro
+- [x] tRPC: fazer upload para Google Drive
+- [x] Frontend: botão de exportar
+- [x] Frontend: feedback de sucesso/erro

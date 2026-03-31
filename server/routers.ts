@@ -4,47 +4,120 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import {
-  getAllAttractions,
-  getAttractionById,
-  createAttraction,
-  updateAttraction,
-  deleteAttraction,
-  getAllDaysWithAttractions,
-  addAttractionToDay,
-  removeAttractionFromDay,
-  reorderAttractionInDay,
-  toggleVote,
-  getUserVotes,
-  getVotesForAttractions,
+  getTripsByUserId,
+  getTripById,
+  createTrip,
+  updateTrip,
+  deleteTrip,
+  getAttractionsByTrip,
+  createAttractionV2,
+  updateAttractionV2,
+  deleteAttractionV2,
+  getDaysByTrip,
+  updateItineraryDay,
+  getDayWithAttractionsV2,
+  addAttractionToDayV2,
+  removeAttractionFromDayV2,
+  reorderAttractionInDayV2,
+  toggleVoteV2,
+  getUserVotesV2,
 } from "./db";
 import { makeRequest } from "./_core/map";
 
-// ─── Attractions Router ───────────────────────────────────────────────────────
+// ─── Trips Router ─────────────────────────────────────────────────────────────
 
-const attractionsRouter = router({
-  list: publicProcedure.query(async ({ ctx }) => {
-    const all = await getAllAttractions();
-    const ids = all.map((a) => a.id);
-    const allVotes = ids.length > 0 ? await getVotesForAttractions(ids) : [];
-    const userVoteSet = new Set<number>();
-    if (ctx.user) {
-      const uv = await getUserVotes(ctx.user.id);
-      uv.forEach((v) => userVoteSet.add(v.attractionId));
-    }
-    const voteCounts = new Map<number, number>();
-    allVotes.forEach((v) => {
-      voteCounts.set(v.attractionId, (voteCounts.get(v.attractionId) ?? 0) + 1);
-    });
-    return all.map((a) => ({
-      ...a,
-      voteCount: voteCounts.get(a.id) ?? 0,
-      userVoted: userVoteSet.has(a.id),
-    }));
+const tripsRouter = router({
+  list: protectedProcedure.query(async ({ ctx }) => {
+    return getTripsByUserId(ctx.user.id);
   }),
 
-  create: publicProcedure
+  create: protectedProcedure
     .input(
       z.object({
+        name: z.string().min(1),
+        description: z.string().optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const tripId = await createTrip({
+        ...input,
+        ownerId: ctx.user.id,
+      });
+      // Create 5 default days
+      const db = await (await import("./db")).getDb();
+      if (db) {
+        const { itineraryDaysV2 } = await import("../drizzle/schema");
+        for (let i = 1; i <= 5; i++) {
+          await db.insert(itineraryDaysV2).values({
+            tripId,
+            dayNumber: i,
+            label: `Dia ${i}`,
+          });
+        }
+      }
+      return getTripById(tripId);
+    }),
+
+  get: protectedProcedure
+    .input(z.object({ tripId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const trip = await getTripById(input.tripId);
+      if (!trip || trip.ownerId !== ctx.user.id) throw new Error("Trip not found");
+      return trip;
+    }),
+
+  update: protectedProcedure
+    .input(
+      z.object({
+        tripId: z.number(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const trip = await getTripById(input.tripId);
+      if (!trip || trip.ownerId !== ctx.user.id) throw new Error("Trip not found");
+      const { tripId, ...data } = input;
+      await updateTrip(tripId, data);
+      return getTripById(tripId);
+    }),
+
+  delete: protectedProcedure
+    .input(z.object({ tripId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const trip = await getTripById(input.tripId);
+      if (!trip || trip.ownerId !== ctx.user.id) throw new Error("Trip not found");
+      await deleteTrip(input.tripId);
+      return { success: true };
+    }),
+});
+
+// ─── Attractions Router (V2) ──────────────────────────────────────────────────
+
+const attractionsRouter = router({
+  listByTrip: protectedProcedure
+    .input(z.object({ tripId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const trip = await getTripById(input.tripId);
+      if (!trip || trip.ownerId !== ctx.user.id) throw new Error("Trip not found");
+      const attractions = await getAttractionsByTrip(input.tripId);
+      const ids = attractions.map((a) => a.id);
+      const userVotes = ids.length > 0 ? await getUserVotesV2(ctx.user.id) : [];
+      const userVoteSet = new Set(userVotes.map((v) => v.attractionId));
+      return attractions.map((a) => ({
+        ...a,
+        userVoted: userVoteSet.has(a.id),
+      }));
+    }),
+
+  create: protectedProcedure
+    .input(
+      z.object({
+        tripId: z.number(),
         name: z.string().min(1),
         description: z.string().optional(),
         address: z.string().optional(),
@@ -53,6 +126,7 @@ const attractionsRouter = router({
         placeId: z.string().optional(),
         photoUrl: z.string().optional(),
         rating: z.number().optional(),
+        type: z.enum(["attraction", "accommodation"]).default("attraction"),
         category: z.string().optional(),
         website: z.string().optional(),
         phoneNumber: z.string().optional(),
@@ -60,62 +134,57 @@ const attractionsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const id = await createAttraction({
-        ...input,
-        status: input.status ?? "idea",
-        createdBy: ctx.user?.id ?? null,
+      const trip = await getTripById(input.tripId);
+      if (!trip || trip.ownerId !== ctx.user.id) throw new Error("Trip not found");
+      const { tripId, ...data } = input;
+      const id = await createAttractionV2({
+        ...data,
+        tripId,
+        status: data.status ?? "idea",
+        createdBy: ctx.user.id,
       });
-      return getAttractionById(id);
+      const db = await (await import("./db")).getDb();
+      if (db) {
+        const { attractionsV2 } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const result = await db.select().from(attractionsV2).where(eq(attractionsV2.id, id)).limit(1);
+        return result[0];
+      }
     }),
 
-  update: publicProcedure
+  update: protectedProcedure
     .input(
       z.object({
         id: z.number(),
-        name: z.string().min(1).optional(),
+        name: z.string().optional(),
         description: z.string().optional(),
         address: z.string().optional(),
         lat: z.number().optional(),
         lng: z.number().optional(),
         photoUrl: z.string().optional(),
         rating: z.number().optional(),
-        category: z.string().optional(),
-        website: z.string().optional(),
-        phoneNumber: z.string().optional(),
         status: z.enum(["idea", "confirmed"]).optional(),
       })
     )
     .mutation(async ({ input }) => {
       const { id, ...data } = input;
-      await updateAttraction(id, data);
-      return getAttractionById(id);
+      await updateAttractionV2(id, data);
     }),
 
-  delete: publicProcedure
+  delete: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      await deleteAttraction(input.id);
+      await deleteAttractionV2(input.id);
       return { success: true };
-    }),
-
-  toggleStatus: publicProcedure
-    .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
-      const attraction = await getAttractionById(input.id);
-      if (!attraction) throw new Error("Attraction not found");
-      const newStatus = attraction.status === "idea" ? "confirmed" : "idea";
-      await updateAttraction(input.id, { status: newStatus });
-      return getAttractionById(input.id);
     }),
 
   vote: protectedProcedure
     .input(z.object({ attractionId: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      const added = await toggleVote(ctx.user.id, input.attractionId);
+      const added = await toggleVoteV2(ctx.user.id, input.attractionId);
       return { added };
     }),
 
-  // Search via Google Places API (server-side proxy)
   searchPlaces: publicProcedure
     .input(z.object({ query: z.string().min(1) }))
     .query(async ({ input }) => {
@@ -155,7 +224,6 @@ const attractionsRouter = router({
       }
     }),
 
-  // Get place photo URL
   getPlacePhoto: publicProcedure
     .input(z.object({ photoReference: z.string(), maxWidth: z.number().default(400) }))
     .query(async ({ input }) => {
@@ -164,34 +232,54 @@ const attractionsRouter = router({
     }),
 });
 
-// ─── Itinerary Router ─────────────────────────────────────────────────────────
+// ─── Itinerary Router (V2) ────────────────────────────────────────────────────
 
 const itineraryRouter = router({
-  getDays: publicProcedure.query(async () => {
-    return getAllDaysWithAttractions();
-  }),
+  getDays: protectedProcedure
+    .input(z.object({ tripId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const trip = await getTripById(input.tripId);
+      if (!trip || trip.ownerId !== ctx.user.id) throw new Error("Trip not found");
+      return getDaysByTrip(input.tripId);
+    }),
 
-  assignToDay: publicProcedure
+  updateDay: protectedProcedure
+    .input(
+      z.object({
+        dayId: z.number(),
+        startTime: z.string().optional(),
+        endTime: z.string().optional(),
+        accommodationId: z.number().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { dayId, ...data } = input;
+      await updateItineraryDay(dayId, data);
+      return { success: true };
+    }),
+
+  assignToDay: protectedProcedure
     .input(
       z.object({
         attractionId: z.number(),
         dayId: z.number(),
         order: z.number().default(0),
+        time: z.string().optional(),
       })
     )
     .mutation(async ({ input }) => {
-      await addAttractionToDay(input.attractionId, input.dayId, input.order);
+      await addAttractionToDayV2(input.attractionId, input.dayId, input.order, input.time);
       return { success: true };
     }),
 
-  removeFromDay: publicProcedure
+  removeFromDay: protectedProcedure
     .input(z.object({ attractionId: z.number() }))
     .mutation(async ({ input }) => {
-      await removeAttractionFromDay(input.attractionId);
+      await removeAttractionFromDayV2(input.attractionId);
       return { success: true };
     }),
 
-  reorder: publicProcedure
+  reorder: protectedProcedure
     .input(
       z.object({
         dayId: z.number(),
@@ -199,11 +287,10 @@ const itineraryRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      await reorderAttractionInDay(input.dayId, input.orderedAttractionIds);
+      await reorderAttractionInDayV2(input.dayId, input.orderedAttractionIds);
       return { success: true };
     }),
 
-  // Get directions for a day's attractions
   getDirections: publicProcedure
     .input(
       z.object({
@@ -264,6 +351,65 @@ const itineraryRouter = router({
     }),
 });
 
+// ─── Export Router ────────────────────────────────────────────────────────────
+
+const exportRouter = router({
+  exportToGoogleDrive: protectedProcedure
+    .input(z.object({ tripId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const trip = await getTripById(input.tripId);
+      if (!trip || trip.ownerId !== ctx.user.id) throw new Error("Trip not found");
+      
+      // Generate document content
+      let content = `# Roteiro de Viagem: ${trip.name}\n\n`;
+      if (trip.description) content += `${trip.description}\n\n`;
+      if (trip.startDate) content += `**Data:** ${trip.startDate} a ${trip.endDate}\n\n`;
+      
+      const days = await getDaysByTrip(input.tripId);
+      for (const day of days) {
+        content += `## ${day.label || `Dia ${day.dayNumber}`}\n`;
+        if (day.date) content += `**Data:** ${day.date}\n`;
+        if (day.startTime) content += `**Horário:** ${day.startTime} - ${day.endTime || "Aberto"}\n`;
+        
+        const dayData = await getDayWithAttractionsV2(day.id);
+        if (dayData?.attractions && dayData.attractions.length > 0) {
+          content += `\n### Atrações\n`;
+          for (const attr of dayData.attractions) {
+            content += `- **${attr.name}** (${attr.type})\n`;
+            if (attr.time) content += `  - Horário: ${attr.time}\n`;
+            if (attr.address) content += `  - Endereço: ${attr.address}\n`;
+            if (attr.rating) content += `  - Avaliação: ${attr.rating}⭐\n`;
+          }
+        }
+        
+        if (day.accommodationId) {
+          const db = await (await import("./db")).getDb();
+          if (db) {
+            const { attractionsV2 } = await import("../drizzle/schema");
+            const { eq } = await import("drizzle-orm");
+            const acc = await db.select().from(attractionsV2).where(eq(attractionsV2.id, day.accommodationId)).limit(1);
+            if (acc[0]) {
+              content += `\n### Alojamento\n`;
+              content += `- **${acc[0].name}**\n`;
+              if (acc[0].address) content += `  - Endereço: ${acc[0].address}\n`;
+              if (acc[0].phoneNumber) content += `  - Telefone: ${acc[0].phoneNumber}\n`;
+            }
+          }
+        }
+        
+        content += `\n`;
+      }
+      
+      // For now, return the content as a string
+      // In production, this would integrate with Google Drive API
+      return {
+        success: true,
+        documentContent: content,
+        message: "Documento gerado. Integração com Google Drive em desenvolvimento.",
+      };
+    }),
+});
+
 // ─── App Router ───────────────────────────────────────────────────────────────
 
 export const appRouter = router({
@@ -276,8 +422,10 @@ export const appRouter = router({
       return { success: true } as const;
     }),
   }),
+  trips: tripsRouter,
   attractions: attractionsRouter,
   itinerary: itineraryRouter,
+  export: exportRouter,
 });
 
 export type AppRouter = typeof appRouter;
