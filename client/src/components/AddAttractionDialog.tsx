@@ -241,7 +241,7 @@ export function AddAttractionDialog({ open, onClose, onAdded, tripId = 1 }: AddA
               <Label htmlFor="address">Endereço / Localização</Label>
               <Input
                 id="address"
-                placeholder="Ex: Agrigento, Sicília"
+                placeholder="Ex: Agrigento, Itália"
                 value={manualAddress}
                 onChange={(e) => setManualAddress(e.target.value)}
               />

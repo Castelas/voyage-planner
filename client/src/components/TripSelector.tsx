@@ -104,7 +104,7 @@ export function TripSelector({ onSelectTrip }: TripSelectorProps) {
               <div>
                 <label className="text-sm font-medium text-gray-700">Nome da Viagem</label>
                 <Input
-                  placeholder="Ex: Sicília 2025"
+                  placeholder="Ex: Paris 2025"
                   value={newTripName}
                   onChange={(e) => setNewTripName(e.target.value)}
                   className="mt-1"
@@ -113,7 +113,7 @@ export function TripSelector({ onSelectTrip }: TripSelectorProps) {
               <div>
                 <label className="text-sm font-medium text-gray-700">Descrição (opcional)</label>
                 <Input
-                  placeholder="Ex: 5 dias explorando a Sicília"
+                  placeholder="Ex: 5 dias explorando a Europa"
                   value={newTripDescription}
                   onChange={(e) => setNewTripDescription(e.target.value)}
                   className="mt-1"

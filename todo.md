@@ -81,3 +81,12 @@
 - [x] tRPC: fazer upload para Google Drive
 - [x] Frontend: botão de exportar
 - [x] Frontend: feedback de sucesso/erro
+
+
+## Mudanças Solicitadas - Fase 3
+
+### Mudar Nome para "Voyage Planner"
+- [x] Corrigir erro de hooks no Home.tsx (conditional returns)
+- [x] Mudar "Sicília Trip Planner" para "Voyage Planner" no código
+- [x] Atualizar títulos e labels na interface
+- [x] Testar e validar funcionamento

@@ -38,6 +38,11 @@ type ViewMode = "map" | "itinerary";
 type FilterStatus = "all" | "idea" | "confirmed";
 
 export default function HomePage() {
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // IMPORTANT: All hooks MUST be called unconditionally at the top of the component
+  // This prevents the "Rendered more hooks than during the previous render" error
+  // ═══════════════════════════════════════════════════════════════════════════════
+
   const { user, logout } = useAuth();
   const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("map");
@@ -50,50 +55,35 @@ export default function HomePage() {
 
   const utils = trpc.useUtils();
 
-  // If not logged in, show login button
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8 text-center max-w-md">
-          <Plane className="w-16 h-16 mx-auto mb-4 text-blue-600" />
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Sicília Trip Planner</h1>
-          <p className="text-gray-600 mb-6">Planeje sua viagem colaborativamente com seus colegas</p>
-          <a href={getLoginUrl()}>
-            <Button className="w-full">
-              <LogIn className="w-4 h-4 mr-2" />
-              Conectar
-            </Button>
-          </a>
-        </div>
-      </div>
-    );
-  }
-
-  // If logged in but no trip selected, show trip selector
-  if (!selectedTripId) {
-    return <TripSelector onSelectTrip={setSelectedTripId} />;
-  }
-
-  // Fetch trip data
-  const { data: currentTrip } = trpc.trips.get.useQuery({ tripId: selectedTripId });
-  const { data: attractions = [], isLoading: attractionsLoading } = trpc.attractions.listByTrip.useQuery({
-    tripId: selectedTripId,
-  });
-  const { data: days = [], isLoading: daysLoading } = trpc.itinerary.getDays.useQuery({
-    tripId: selectedTripId,
-  });
+  // Fetch trip data (even if not selected, to avoid hook order issues)
+  const { data: currentTrip } = trpc.trips.get.useQuery(
+    { tripId: selectedTripId || 0 },
+    { enabled: !!selectedTripId }
+  );
+  const { data: attractions = [], isLoading: attractionsLoading } = trpc.attractions.listByTrip.useQuery(
+    { tripId: selectedTripId || 0 },
+    { enabled: !!selectedTripId }
+  );
+  const { data: days = [], isLoading: daysLoading } = trpc.itinerary.getDays.useQuery(
+    { tripId: selectedTripId || 0 },
+    { enabled: !!selectedTripId }
+  );
 
   const deleteMutation = trpc.attractions.delete.useMutation({
     onSuccess: () => {
-      utils.attractions.listByTrip.invalidate({ tripId: selectedTripId });
-      utils.itinerary.getDays.invalidate({ tripId: selectedTripId });
+      if (selectedTripId) {
+        utils.attractions.listByTrip.invalidate({ tripId: selectedTripId });
+        utils.itinerary.getDays.invalidate({ tripId: selectedTripId });
+      }
       toast.success("Atração removida");
     },
   });
 
   const voteMutation = trpc.attractions.vote.useMutation({
     onSuccess: (data) => {
-      utils.attractions.listByTrip.invalidate({ tripId: selectedTripId });
+      if (selectedTripId) {
+        utils.attractions.listByTrip.invalidate({ tripId: selectedTripId });
+      }
       toast.success(data.added ? "Favoritado!" : "Favorito removido");
     },
     onError: () => toast.error("Erro ao votar"),
@@ -102,7 +92,6 @@ export default function HomePage() {
   const exportMutation = trpc.export.exportToGoogleDrive.useMutation({
     onSuccess: (data) => {
       toast.success(data.message);
-      // In production, would handle Google Drive upload here
       console.log("Document content:", data.documentContent);
     },
     onError: () => toast.error("Erro ao exportar"),
@@ -146,6 +135,34 @@ export default function HomePage() {
   const confirmedCount = attractions.filter((a) => a.status === "confirmed").length;
   const favoriteCount = attractions.filter((a) => a.userVoted).length;
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Conditional rendering AFTER all hooks have been called
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // If not logged in, show login button
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-xl p-8 text-center max-w-md">
+          <Plane className="w-16 h-16 mx-auto mb-4 text-blue-600" />
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Voyage Planner</h1>
+          <p className="text-gray-600 mb-6">Planeje sua viagem colaborativamente com seus colegas</p>
+          <a href={getLoginUrl()}>
+            <Button className="w-full">
+              <LogIn className="w-4 h-4 mr-2" />
+              Conectar
+            </Button>
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // If logged in but no trip selected, show trip selector
+  if (!selectedTripId) {
+    return <TripSelector onSelectTrip={setSelectedTripId} />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
@@ -154,8 +171,8 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             <Plane className="w-6 h-6 text-blue-600" />
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{currentTrip?.name || "Sicília 2025"}</h1>
-              <p className="text-sm text-gray-600">5 dias de aventura</p>
+              <h1 className="text-2xl font-bold text-gray-900">{currentTrip?.name || "Voyage Planner"}</h1>
+              <p className="text-sm text-gray-600">Planeje sua viagem</p>
             </div>
           </div>
 
@@ -289,7 +306,7 @@ export default function HomePage() {
                     <div className="text-center py-8 text-gray-500">
                       <Lightbulb className="w-8 h-8 mx-auto mb-2 opacity-50" />
                       <p>Nenhuma atração ainda</p>
-                      <p className="text-sm">Clique em "Adicionar" para conectar</p>
+                      <p className="text-sm">Clique em "Adicionar" para começar</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -346,9 +363,12 @@ export default function HomePage() {
         open={showAddDialog}
         onClose={() => setShowAddDialog(false)}
         onAdded={() => {
-          utils.attractions.listByTrip.invalidate({ tripId: selectedTripId });
+          if (selectedTripId) {
+            utils.attractions.listByTrip.invalidate({ tripId: selectedTripId });
+          }
           setShowAddDialog(false);
         }}
+        tripId={selectedTripId}
       />
     </div>
   );
