@@ -1,8 +1,32 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import type { RouterOutputs } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Clock, MapPin, Hotel, ChevronDown, ChevronUp, X } from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
+type Day = RouterOutputs["itinerary"]["getDays"][number];
+type Attraction = RouterOutputs["attractions"]["listByTrip"][number];
 type DayAttraction = RouterOutputs["itinerary"]["getDayAttractions"][number];
+
+interface ItineraryPanelV2Props {
+  days: Day[];
+  allAttractions?: Attraction[];
+  selectedDayId: number | null;
+  onSelectDay: (dayId: number) => void;
+  tripId: number;
+}
 
 function DayAttractionsList({ dayId, onRemove }: { dayId: number; onRemove: (attractionId: number) => void }) {
   const { data: dayAttractions = [] } = trpc.itinerary.getDayAttractions.useQuery({ dayId });
@@ -31,31 +55,6 @@ function DayAttractionsList({ dayId, onRemove }: { dayId: number; onRemove: (att
       ))}
     </div>
   );
-}
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { Clock, MapPin, Hotel, ChevronDown, ChevronUp, X } from "lucide-react";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-type Day = RouterOutputs["itinerary"]["getDays"][number];
-type Attraction = RouterOutputs["attractions"]["listByTrip"][number];
-
-interface ItineraryPanelV2Props {
-  days: Day[];
-  allAttractions?: Attraction[];
-  selectedDayId: number | null;
-  onSelectDay: (dayId: number) => void;
-  tripId: number;
 }
 
 export function ItineraryPanelV2({ days, allAttractions = [], selectedDayId, onSelectDay, tripId }: ItineraryPanelV2Props) {
