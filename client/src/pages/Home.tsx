@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc";
 import type { RouterOutputs } from "@/lib/trpc";
 import { SiciliaMap } from "@/components/SiciliaMap";
 import { ItineraryPanelV2 } from "@/components/ItineraryPanelV2";
+import { AccommodationsPanel } from "@/components/AccommodationsPanel";
 import { AddAttractionDialog } from "@/components/AddAttractionDialog";
 import { AttractionCard } from "@/components/AttractionCard";
 import { TripSelector } from "@/components/TripSelector";
@@ -15,6 +16,7 @@ import {
   Plus,
   Map,
   Calendar,
+  Hotel,
   List,
   Search,
   Filter,
@@ -34,7 +36,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type Attraction = RouterOutputs["attractions"]["listByTrip"][number];
-type ViewMode = "map" | "itinerary";
+type ViewMode = "map" | "itinerary" | "accommodations";
 type FilterStatus = "all" | "idea" | "confirmed";
 
 export default function HomePage() {
@@ -258,6 +260,18 @@ export default function HomePage() {
                   <Calendar className="w-4 h-4 inline mr-2" />
                   Itinerário
                 </button>
+                <button
+                  onClick={() => setViewMode("accommodations")}
+                  className={cn(
+                    "flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-colors",
+                    viewMode === "accommodations"
+                      ? "border-blue-600 text-blue-600 bg-blue-50"
+                      : "border-transparent text-gray-600 hover:text-gray-900"
+                  )}
+                >
+                  <Hotel className="w-4 h-4 inline mr-2" />
+                  Alojamentos
+                </button>
               </div>
 
               {/* Attractions View */}
@@ -322,6 +336,17 @@ export default function HomePage() {
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* Accommodations View */}
+              {viewMode === "accommodations" && (
+                <AccommodationsPanel
+                  days={days}
+                  tripId={selectedTripId}
+                  onAccommodationAdded={() => {
+                    // Refresh if needed
+                  }}
+                />
               )}
 
               {/* Itinerary View */}

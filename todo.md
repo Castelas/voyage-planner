@@ -126,3 +126,27 @@
 ### Testes
 - [ ] Testes para wizard de criação
 - [ ] Testes para compartilhamento colaborativo
+
+
+## Mudanças Solicitadas - Fase 5
+
+### Corrigir Adição de Atrações aos Dias
+- [x] Diagnosticar por que atrações não estão sendo adicionadas aos dias
+- [x] Implementar múltiplas atrações por dia com horários dedicados
+- [x] Mostrar horário de cada atração no card do dia
+
+### Aba de Alojamentos
+- [x] Criar aba "Alojamentos" no itinerário
+- [x] Implementar adição de alojamentos via Google Places ou manual
+- [x] Marcadores verdes para alojamentos no mapa
+- [x] Filtro de marcadores (atrações/alojamentos)
+
+### Alojamentos por Dia
+- [x] Permitir atribuir alojamento a cada dia
+- [x] Mostrar alojamento no painel de cada dia
+- [x] Sincronizar com mapa
+
+### Deletar Viagens
+- [x] Adicionar botão de deletar viagem no TripSelector
+- [x] Confirmação antes de deletar
+- [x] Remover viagem do banco de dados

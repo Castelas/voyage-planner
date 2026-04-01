@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Plus, Plane, LogOut } from "lucide-react";
+import { Plus, Plane, LogOut, Trash2 } from "lucide-react";
 import { TripWizard } from "./TripWizard";
 import { toast } from "sonner";
 
@@ -17,8 +17,18 @@ export function TripSelector({ onSelectTrip, onLogout }: TripSelectorProps) {
   const [showDialog, setShowDialog] = useState(false);
   const [newTripName, setNewTripName] = useState("");
   const [newTripDescription, setNewTripDescription] = useState("");
+  const [tripToDelete, setTripToDelete] = useState<number | null>(null);
 
   const { data: trips = [], isLoading } = trpc.trips.list.useQuery();
+
+  const deleteTripMutation = trpc.trips.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Viagem deletada");
+      setTripToDelete(null);
+    },
+    onError: () => toast.error("Erro ao deletar viagem"),
+  });
+
   const createTripMutation = trpc.trips.create.useMutation({
     onSuccess: (trip) => {
       toast.success("Viagem criada!");
@@ -43,28 +53,23 @@ export function TripSelector({ onSelectTrip, onLogout }: TripSelectorProps) {
     onSelectTrip(tripId);
   };
 
-
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <Plane className="w-12 h-12 mx-auto mb-4 text-blue-600 animate-bounce" />
-          <p className="text-gray-600">Carregando viagens...</p>
-        </div>
+        <p className="text-gray-600">Carregando viagens...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
         <div className="flex items-center justify-center mb-6">
           <Plane className="w-8 h-8 text-blue-600 mr-3" />
-          <h1 className="text-3xl font-bold text-gray-900">Minhas Viagens</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Voyage Planner</h1>
         </div>
 
-        <p className="text-gray-600 text-center mb-6">Selecione uma viagem para começar a planejar</p>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Minhas Viagens</h2>
 
         {trips.length === 0 ? (
           <div className="text-center py-8">
@@ -83,19 +88,30 @@ export function TripSelector({ onSelectTrip, onLogout }: TripSelectorProps) {
           <>
             <div className="space-y-3 mb-6">
               {trips.map((trip) => (
-                <button
-                  key={trip.id}
-                  onClick={() => handleSelectTrip(trip.id)}
-                  className="w-full p-4 text-left border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all"
-                >
-                  <h3 className="font-semibold text-gray-900">{trip.name}</h3>
-                  {trip.description && <p className="text-sm text-gray-600 mt-1">{trip.description}</p>}
-                  {trip.startDate && (
-                    <p className="text-xs text-gray-500 mt-2">
-                      {trip.startDate} a {trip.endDate}
-                    </p>
-                  )}
-                </button>
+                <div key={trip.id} className="flex gap-2 items-stretch">
+                  <button
+                    onClick={() => handleSelectTrip(trip.id)}
+                    className="flex-1 p-4 text-left border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all"
+                  >
+                    <h3 className="font-semibold text-gray-900">{trip.name}</h3>
+                    {trip.description && (
+                      <p className="text-sm text-gray-600 mt-1">{trip.description}</p>
+                    )}
+                    {trip.startDate && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        {trip.startDate} a {trip.endDate}
+                      </p>
+                    )}
+                  </button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setTripToDelete(trip.id)}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
               ))}
             </div>
 
@@ -116,6 +132,42 @@ export function TripSelector({ onSelectTrip, onLogout }: TripSelectorProps) {
           onOpenChange={setShowWizard}
           onTripCreated={handleTripCreatedFromWizard}
         />
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={tripToDelete !== null}
+          onOpenChange={(open) => !open && setTripToDelete(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Deletar Viagem?</DialogTitle>
+              <DialogDescription>
+                Tem certeza que deseja deletar esta viagem? Esta ação não pode ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setTripToDelete(null)}
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (tripToDelete) {
+                    deleteTripMutation.mutate({ tripId: tripToDelete });
+                  }
+                }}
+                disabled={deleteTripMutation.isPending}
+                className="flex-1"
+              >
+                {deleteTripMutation.isPending ? "Deletando..." : "Deletar"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
