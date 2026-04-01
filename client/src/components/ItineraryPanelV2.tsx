@@ -1,6 +1,37 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import type { RouterOutputs } from "@/lib/trpc";
+
+type DayAttraction = RouterOutputs["itinerary"]["getDayAttractions"][number];
+
+function DayAttractionsList({ dayId, onRemove }: { dayId: number; onRemove: (attractionId: number) => void }) {
+  const { data: dayAttractions = [] } = trpc.itinerary.getDayAttractions.useQuery({ dayId });
+
+  if (dayAttractions.length === 0) {
+    return <p className="text-xs text-gray-400 italic">Nenhuma atração adicionada</p>;
+  }
+
+  return (
+    <div className="space-y-1">
+      {dayAttractions.map((attr: DayAttraction) => (
+        <div key={attr.id} className="flex items-center justify-between bg-white rounded-md px-2 py-1.5 border border-gray-100 text-sm">
+          <div className="flex items-center gap-2 min-w-0">
+            {attr.time && (
+              <span className="text-xs text-blue-600 font-medium shrink-0">{attr.time}</span>
+            )}
+            <span className="truncate text-gray-800">{attr.name}</span>
+          </div>
+          <button
+            onClick={() => onRemove(attr.id)}
+            className="text-gray-300 hover:text-red-400 transition-colors ml-2 shrink-0"
+          >
+            <X size={12} />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +62,8 @@ export function ItineraryPanelV2({ days, allAttractions = [], selectedDayId, onS
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set(days.map((d) => d.id)));
   const [selectedAttractionTime, setSelectedAttractionTime] = useState<Record<number, string>>({});
 
+  const utils = trpc.useUtils();
+
   const toggleDayExpanded = (dayId: number) => {
     const newSet = new Set(expandedDays);
     if (newSet.has(dayId)) {
@@ -48,7 +81,8 @@ export function ItineraryPanelV2({ days, allAttractions = [], selectedDayId, onS
   });
 
   const addAttractionToDayMutation = trpc.itinerary.assignToDay.useMutation({
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      utils.itinerary.getDayAttractions.invalidate({ dayId: variables.dayId });
       toast.success("Atração adicionada ao dia");
     },
     onError: () => toast.error("Erro ao adicionar atração"),
@@ -56,6 +90,7 @@ export function ItineraryPanelV2({ days, allAttractions = [], selectedDayId, onS
 
   const removeAttractionFromDayMutation = trpc.itinerary.removeFromDay.useMutation({
     onSuccess: () => {
+      utils.itinerary.getDayAttractions.invalidate();
       toast.success("Atração removida do dia");
     },
     onError: () => toast.error("Erro ao remover atração"),
@@ -153,7 +188,13 @@ export function ItineraryPanelV2({ days, allAttractions = [], selectedDayId, onS
                   <MapPin className="w-3 h-3" />
                   Atrações
                 </label>
-                
+
+                {/* Lista de atrações já adicionadas */}
+                <DayAttractionsList
+                  dayId={day.id}
+                  onRemove={(attractionId) => handleRemoveAttractionFromDay(attractionId)}
+                />
+
                 {/* Adicionar atração */}
                 {allAttractions.length > 0 && (
                   <div className="flex gap-2">

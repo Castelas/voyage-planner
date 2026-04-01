@@ -15,11 +15,12 @@ interface SiciliaMapProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  confirmed: "#10b981", // emerald
+  confirmed: "#10b981", // emerald green
   idea: "#f59e0b",      // amber
 };
 
-const SELECTED_COLOR = "#3b82f6"; // blue
+const ACCOMMODATION_COLOR = "#3b82f6"; // blue
+const SELECTED_COLOR = "#7c3aed"; // violet
 
 export function SiciliaMap({
   attractions,
@@ -40,7 +41,12 @@ export function SiciliaMap({
 
   const createMarkerContent = useCallback((attraction: Attraction, isSelected: boolean) => {
     const statusKey = (attraction.status as keyof typeof STATUS_COLORS) || "idea";
-    const color = isSelected ? SELECTED_COLOR : STATUS_COLORS[statusKey];
+    const isAccommodation = attraction.type === "accommodation";
+    const color = isSelected
+      ? SELECTED_COLOR
+      : isAccommodation
+        ? ACCOMMODATION_COLOR
+        : STATUS_COLORS[statusKey];
     const div = document.createElement("div");
     div.innerHTML = `
       <div style="
@@ -68,7 +74,7 @@ export function SiciliaMap({
             color: white;
             font-size: 14px;
             font-weight: bold;
-          ">${attraction.status === "confirmed" ? "✓" : "★"}</div>
+          ">${isAccommodation ? "H" : attraction.status === "confirmed" ? "✓" : "★"}</div>
         </div>
       </div>
     `;

@@ -285,6 +285,13 @@ const itineraryRouter = router({
       return { success: true };
     }),
 
+  getDayAttractions: protectedProcedure
+    .input(z.object({ dayId: z.number() }))
+    .query(async ({ input }) => {
+      const result = await getDayWithAttractionsV2(input.dayId);
+      return result?.attractions ?? [];
+    }),
+
   reorder: protectedProcedure
     .input(
       z.object({

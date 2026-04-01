@@ -91,6 +91,16 @@ export default function HomePage() {
     onError: () => toast.error("Erro ao votar"),
   });
 
+  const toggleStatusMutation = trpc.attractions.update.useMutation({
+    onSuccess: () => {
+      if (selectedTripId) {
+        utils.attractions.listByTrip.invalidate({ tripId: selectedTripId });
+      }
+      toast.success("Status atualizado");
+    },
+    onError: () => toast.error("Erro ao atualizar status"),
+  });
+
   const exportMutation = trpc.export.exportToGoogleDrive.useMutation({
     onSuccess: (data) => {
       toast.success(data.message);
@@ -110,14 +120,18 @@ export default function HomePage() {
 
   // Selected day data
   const selectedDay = days.find((d) => d.id === selectedDayId);
+
+  const { data: dayAttractionsData = [] } = trpc.itinerary.getDayAttractions.useQuery(
+    { dayId: selectedDayId || 0 },
+    { enabled: !!selectedDayId }
+  );
+
   const selectedDayAttractions = useMemo(() => {
-    if (!selectedDay) return [];
-    const ids = new Set(selectedDay.accommodationId ? [selectedDay.accommodationId] : []);
-    attractions.forEach((a) => {
-      if (a.id === selectedDay.accommodationId) ids.add(a.id);
-    });
-    return attractions.filter((a) => ids.has(a.id));
-  }, [selectedDay, attractions]);
+    if (!selectedDayId || !selectedDay) return [];
+    const assignedIds = new Set(dayAttractionsData.map((a) => a.id));
+    if (selectedDay.accommodationId) assignedIds.add(selectedDay.accommodationId);
+    return attractions.filter((a) => assignedIds.has(a.id));
+  }, [selectedDayId, selectedDay, dayAttractionsData, attractions]);
 
   // Directions for selected day
   const waypoints = useMemo(
@@ -331,6 +345,12 @@ export default function HomePage() {
                           onVote={() => voteMutation.mutate({ attractionId: attr.id })}
                           onDelete={() => deleteMutation.mutate({ id: attr.id })}
                           onSelect={() => setSelectedAttractionId(attr.id)}
+                          onToggleStatus={() =>
+                            toggleStatusMutation.mutate({
+                              id: attr.id,
+                              status: attr.status === "confirmed" ? "idea" : "confirmed",
+                            })
+                          }
                         />
                       ))}
                     </div>
