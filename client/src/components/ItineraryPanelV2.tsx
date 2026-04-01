@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Clock, MapPin, Hotel, ChevronDown, ChevronUp, X } from "lucide-react";
+import { Clock, MapPin, ChevronDown, ChevronUp, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -28,6 +28,16 @@ interface ItineraryPanelV2Props {
   tripId: number;
 }
 
+function DayAttractionCount({ dayId }: { dayId: number }) {
+  const { data = [] } = trpc.itinerary.getDayAttractions.useQuery({ dayId });
+  if (data.length === 0) return null;
+  return (
+    <Badge variant="secondary" className="text-xs ml-1">
+      {data.length} {data.length === 1 ? "atração" : "atrações"}
+    </Badge>
+  );
+}
+
 function DayAttractionsList({ dayId, onRemove }: { dayId: number; onRemove: (attractionId: number) => void }) {
   const { data: dayAttractions = [] } = trpc.itinerary.getDayAttractions.useQuery({ dayId });
 
@@ -40,6 +50,10 @@ function DayAttractionsList({ dayId, onRemove }: { dayId: number; onRemove: (att
       {dayAttractions.map((attr: DayAttraction) => (
         <div key={attr.id} className="flex items-center justify-between bg-white rounded-md px-2 py-1.5 border border-gray-100 text-sm">
           <div className="flex items-center gap-2 min-w-0">
+            <span className={cn(
+              "w-2 h-2 rounded-full shrink-0",
+              attr.status === "confirmed" ? "bg-emerald-500" : "bg-amber-400"
+            )} />
             {attr.time && (
               <span className="text-xs text-blue-600 font-medium shrink-0">{attr.time}</span>
             )}
@@ -110,9 +124,7 @@ export function ItineraryPanelV2({ days, allAttractions = [], selectedDayId, onS
   };
 
   const handleRemoveAttractionFromDay = (attractionId: number) => {
-    removeAttractionFromDayMutation.mutate({
-      attractionId,
-    });
+    removeAttractionFromDayMutation.mutate({ attractionId });
   };
 
   return (
@@ -131,7 +143,10 @@ export function ItineraryPanelV2({ days, allAttractions = [], selectedDayId, onS
           >
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <h3 className="font-semibold text-gray-900">{day.label || `Dia ${day.dayNumber}`}</h3>
+                <div className="flex items-center gap-1">
+                  <h3 className="font-semibold text-gray-900">{day.label || `Dia ${day.dayNumber}`}</h3>
+                  <DayAttractionCount dayId={day.id} />
+                </div>
                 {day.date && <p className="text-sm text-gray-600">{day.date}</p>}
                 {day.startTime && (
                   <div className="flex items-center gap-1 mt-1 text-xs text-gray-600">
@@ -188,10 +203,9 @@ export function ItineraryPanelV2({ days, allAttractions = [], selectedDayId, onS
                   Atrações
                 </label>
 
-                {/* Lista de atrações já adicionadas */}
                 <DayAttractionsList
                   dayId={day.id}
-                  onRemove={(attractionId) => handleRemoveAttractionFromDay(attractionId)}
+                  onRemove={handleRemoveAttractionFromDay}
                 />
 
                 {/* Adicionar atração */}

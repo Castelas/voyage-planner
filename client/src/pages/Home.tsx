@@ -192,7 +192,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-3 text-sm">
             <Badge variant="secondary" className="gap-1">
               <Lightbulb className="w-3 h-3" />
               {ideaCount} ideias
@@ -203,8 +203,23 @@ export default function HomePage() {
             </Badge>
             <Badge variant="secondary" className="gap-1">
               <Heart className="w-3 h-3" />
-              {favoriteCount} favoritos seus
+              {favoriteCount} favoritos
             </Badge>
+            {attractions.length > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="w-28">
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.round((confirmedCount / attractions.length) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+                <span className="text-xs text-gray-500">
+                  {Math.round((confirmedCount / attractions.length) * 100)}% confirmado
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
