@@ -257,6 +257,12 @@ const itineraryRouter = router({
       return getDaysByTrip(input.tripId);
     }),
 
+  getDayWithAttractions: protectedProcedure
+    .input(z.object({ dayId: z.number() }))
+    .query(async ({ input }) => {
+      return getDayWithAttractionsV2(input.dayId);
+    }),
+
   updateDay: protectedProcedure
     .input(
       z.object({
