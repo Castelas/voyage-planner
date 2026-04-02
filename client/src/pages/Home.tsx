@@ -39,6 +39,68 @@ type Attraction = RouterOutputs["attractions"]["listByTrip"][number];
 type ViewMode = "map" | "itinerary" | "accommodations";
 type FilterStatus = "all" | "idea" | "confirmed";
 
+function LoginPage() {
+  const hasOAuth = !!import.meta.env.VITE_OAUTH_PORTAL_URL;
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSimpleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth/simple-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        setError("Password incorreta");
+      }
+    } catch {
+      setError("Erro ao conectar");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl p-8 text-center max-w-md w-full">
+        <Plane className="w-16 h-16 mx-auto mb-4 text-blue-600" />
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Voyage Planner</h1>
+        <p className="text-gray-600 mb-6">Planeje sua viagem colaborativamente</p>
+        {hasOAuth ? (
+          <a href={getLoginUrl()}>
+            <Button className="w-full">
+              <LogIn className="w-4 h-4 mr-2" />
+              Conectar
+            </Button>
+          </a>
+        ) : (
+          <form onSubmit={handleSimpleLogin} className="space-y-3">
+            <Input
+              type="password"
+              placeholder="Password de acesso"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            {error && <p className="text-sm text-red-500">{error}</p>}
+            <Button type="submit" className="w-full" disabled={loading}>
+              <LogIn className="w-4 h-4 mr-2" />
+              {loading ? "A entrar..." : "Entrar"}
+            </Button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   // ═══════════════════════════════════════════════════════════════════════════════
   // IMPORTANT: All hooks MUST be called unconditionally at the top of the component
@@ -155,23 +217,9 @@ export default function HomePage() {
   // Conditional rendering AFTER all hooks have been called
   // ═══════════════════════════════════════════════════════════════════════════════
 
-  // If not logged in, show login button
+  // If not logged in, show login
   if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8 text-center max-w-md">
-          <Plane className="w-16 h-16 mx-auto mb-4 text-blue-600" />
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Voyage Planner</h1>
-          <p className="text-gray-600 mb-6">Planeje sua viagem colaborativamente com seus colegas</p>
-          <a href={getLoginUrl()}>
-            <Button className="w-full">
-              <LogIn className="w-4 h-4 mr-2" />
-              Conectar
-            </Button>
-          </a>
-        </div>
-      </div>
-    );
+    return <LoginPage />;
   }
 
   // If logged in but no trip selected, show trip selector

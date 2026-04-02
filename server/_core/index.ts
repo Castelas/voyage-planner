@@ -7,6 +7,10 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { sdk } from "./sdk";
+import { getSessionCookieOptions } from "./cookies";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import * as db from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -35,6 +39,26 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+
+  // Simple password login (used when ADMIN_PASSWORD is set)
+  app.post("/api/auth/simple-login", async (req, res) => {
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      res.status(404).json({ error: "Simple login not enabled" });
+      return;
+    }
+    const { password } = req.body as { password?: string };
+    if (!password || password !== adminPassword) {
+      res.status(401).json({ error: "Invalid password" });
+      return;
+    }
+    const openId = "admin";
+    await db.upsertUser({ openId, name: "Admin", lastSignedIn: new Date() });
+    const sessionToken = await sdk.createSessionToken(openId, { name: "Admin", expiresInMs: ONE_YEAR_MS });
+    const cookieOptions = getSessionCookieOptions(req);
+    res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+    res.json({ success: true });
+  });
   // tRPC API
   app.use(
     "/api/trpc",
