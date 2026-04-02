@@ -150,3 +150,26 @@
 - [x] Adicionar botão de deletar viagem no TripSelector
 - [x] Confirmação antes de deletar
 - [x] Remover viagem do banco de dados
+
+
+## Mudanças Solicitadas - Fase 6
+
+### Confirmar Ideias com Mudança de Cor
+- [x] Adicionar botão "Confirmar" em cada atração
+- [x] Mudar status de "ideia" para "confirmada"
+- [x] Marcador fica verde no mapa quando confirmado
+- [x] Sincronizar com backend
+
+### Alterar Cor de Alojamentos
+- [x] Mudar cor de alojamentos de verde para azul no mapa
+- [x] Atualizar legenda do mapa
+
+### Persistir Atrações aos Dias
+- [x] Salvar atrações adicionadas ao dia no banco de dados
+- [x] Carregar atrações ao abrir o dia
+- [x] Não remover atração ao recarregar página
+
+### Múltiplas Atrações por Dia
+- [x] Permitir adicionar várias atrações ao mesmo dia
+- [x] Mostrar lista de atrações do dia
+- [x] Permitir reordenar atrações dentro do dia

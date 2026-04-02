@@ -81,6 +81,17 @@ export default function HomePage() {
     },
   });
 
+  const confirmMutation = trpc.attractions.confirm.useMutation({
+    onSuccess: () => {
+      if (selectedTripId) {
+        utils.attractions.listByTrip.invalidate({ tripId: selectedTripId });
+        utils.itinerary.getDays.invalidate({ tripId: selectedTripId });
+      }
+      toast.success("Atração confirmada!");
+    },
+    onError: () => toast.error("Erro ao confirmar atração"),
+  });
+
   const voteMutation = trpc.attractions.vote.useMutation({
     onSuccess: (data) => {
       if (selectedTripId) {
@@ -330,6 +341,7 @@ export default function HomePage() {
                           attraction={attr}
                           onVote={() => voteMutation.mutate({ attractionId: attr.id })}
                           onDelete={() => deleteMutation.mutate({ id: attr.id })}
+                          onToggleStatus={() => confirmMutation.mutate({ id: attr.id })}
                           onSelect={() => setSelectedAttractionId(attr.id)}
                         />
                       ))}

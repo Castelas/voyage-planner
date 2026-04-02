@@ -15,9 +15,11 @@ interface SiciliaMapProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  confirmed: "#10b981", // emerald
-  idea: "#f59e0b",      // amber
+  confirmed: "#10b981", // emerald (green)
+  idea: "#f59e0b",      // amber (yellow)
 };
+
+const ACCOMMODATION_COLOR = "#3b82f6"; // blue for accommodations
 
 const SELECTED_COLOR = "#3b82f6"; // blue
 
@@ -39,8 +41,15 @@ export function SiciliaMap({
   const SICILY_CENTER = { lat: 37.6, lng: 14.0 };
 
   const createMarkerContent = useCallback((attraction: Attraction, isSelected: boolean) => {
-    const statusKey = (attraction.status as keyof typeof STATUS_COLORS) || "idea";
-    const color = isSelected ? SELECTED_COLOR : STATUS_COLORS[statusKey];
+    let color: string;
+    if (isSelected) {
+      color = SELECTED_COLOR;
+    } else if (attraction.type === "accommodation") {
+      color = ACCOMMODATION_COLOR;
+    } else {
+      const statusKey = (attraction.status as keyof typeof STATUS_COLORS) || "idea";
+      color = STATUS_COLORS[statusKey];
+    }
     const div = document.createElement("div");
     div.innerHTML = `
       <div style="

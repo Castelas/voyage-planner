@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { eq } from "drizzle-orm";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -156,6 +157,13 @@ const attractionsRouter = router({
         const result = await db.select().from(attractionsV2).where(eq(attractionsV2.id, id)).limit(1);
         return result[0];
       }
+    }),
+
+  confirm: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await updateAttractionV2(input.id, { status: "confirmed" });
+      return { success: true };
     }),
 
   update: protectedProcedure
